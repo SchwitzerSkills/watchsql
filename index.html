@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>watchsql Client</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    label, input { display: block; margin: 10px 0; }
+    pre { background: #eee; padding: 10px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>watchsql Demo</h1>
+
+  <label>
+    userId:
+    <input type="text" id="userId" value="2">
+  </label>
+
+  <label>
+    Name:
+    <input type="text" id="name">
+  </label>
+
+  <label>
+    Email:
+    <input type="email" id="email">
+  </label>
+
+  <button id="submit">Absenden</button>
+
+  <h2>Antwort vom Server (nur für diesen userId):</h2>
+  <pre id="output">Warte auf Rückmeldung ...</pre>
+
+  <script>
+    const output = document.getElementById('output');
+    const userIdField = document.getElementById('userId');
+
+    let ws;
+
+    function connectWebSocket() {
+      ws = new WebSocket('ws://' + location.hostname + ':3000');
+      ws.onopen = () => {
+	console.log(userIdField.value)
+        ws.send(JSON.stringify({ type: 'identify', id: userIdField.value }));
+        output.textContent += 'Verbunden mit WebSocket.\n';
+      };
+
+      ws.onmessage = (msg) => {
+        const event = JSON.parse(msg.data);
+        output.textContent += `[${event.type}] ${JSON.stringify(event.data)}\n`;
+      };
+    }
+
+    document.getElementById('submit').addEventListener('click', () => {
+      const userId = userIdField.value;
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+	console.log(userId)
+
+      fetch('http://' + location.hostname + ':3001/api/insert', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userId, name, email })
+
+      }).then(res => res.json())
+        .then(data => {
+          output.textContent += `API Antwort: ${JSON.stringify(data)}\n`;
+        });
+    });
+
+    connectWebSocket();
+  </script>
+</body>
+</html>
+
